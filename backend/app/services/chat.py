@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator
 import httpx
 
 from app.core.config import Settings
-from app.schemas.chat import ChatResponse
+from app.schemas.chat import ChatMessage, ChatResponse
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +28,14 @@ def _build_chat_completions_url(base_url: str) -> str:
     return f"{normalized}/chat/completions"
 
 
-def _build_chat_payload(message: str, model_name: str, stream: bool = False) -> dict:
+def _build_chat_payload(
+    messages: list[ChatMessage],
+    model_name: str,
+    stream: bool = False,
+) -> dict:
     return {
         "model": model_name,
-        "messages": [
-            {
-                "role": "user",
-                "content": message,
-            }
-        ],
+        "messages": [message.model_dump() for message in messages],
         "stream": stream,
     }
 
@@ -167,11 +166,14 @@ async def _extract_upstream_error_from_response(response: httpx.Response) -> str
     return _extract_upstream_error(payload)
 
 
-async def request_chat_completion(message: str, settings: Settings) -> ChatResponse:
+async def request_chat_completion(
+    messages: list[ChatMessage],
+    settings: Settings,
+) -> ChatResponse:
     _validate_settings(settings)
     request_url = _build_chat_completions_url(settings.model_api_base_url)
     payload = _build_chat_payload(
-        message=message,
+        messages=messages,
         model_name=settings.model_name,
     )
     headers = _build_headers(settings)
@@ -235,13 +237,13 @@ async def request_chat_completion(message: str, settings: Settings) -> ChatRespo
 
 
 async def create_chat_completion_stream(
-    message: str,
+    messages: list[ChatMessage],
     settings: Settings,
 ) -> AsyncIterator[str]:
     _validate_settings(settings)
     request_url = _build_chat_completions_url(settings.model_api_base_url)
     payload = _build_chat_payload(
-        message=message,
+        messages=messages,
         model_name=settings.model_name,
         stream=True,
     )

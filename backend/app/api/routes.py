@@ -25,7 +25,7 @@ async def chat(
 ) -> ChatResponse:
     try:
         return await request_chat_completion(
-            message=payload.message,
+            messages=payload.resolved_messages(),
             settings=settings,
         )
     except ModelServiceError as exc:
@@ -39,7 +39,7 @@ async def chat_stream(
 ) -> StreamingResponse:
     try:
         stream = await create_chat_completion_stream(
-            message=payload.message,
+            messages=payload.resolved_messages(),
             settings=settings,
         )
     except ModelServiceError as exc:

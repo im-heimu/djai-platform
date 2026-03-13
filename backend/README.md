@@ -9,6 +9,7 @@
 - `POST /api/v1/chat/stream`
 - прямой вызов OpenAI-compatible chat completions API
 - потоковый plain-text ответ для frontend
+- поддержка multi-turn диалога через `messages[]`
 - базовые настройки через переменные окружения
 - CORS для локального frontend
 
@@ -44,3 +45,5 @@ uv lock
 Без корректных `MODEL_API_BASE_URL`, `MODEL_API_KEY` и `MODEL_NAME` endpoint `/api/v1/chat` вернёт читаемую ошибку конфигурации.
 
 `POST /api/v1/chat/stream` сохраняет обычный HTTP-подход и отдаёт текст по мере генерации ответа. WebSocket и отдельная event-схема пока не используются.
+
+Оба chat endpoint принимают либо новый формат `messages: [{ role, content }, ...]`, либо старый `message` для простой обратной совместимости.

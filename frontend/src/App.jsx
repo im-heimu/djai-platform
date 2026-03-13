@@ -14,13 +14,13 @@ async function parseErrorResponse(response) {
   return text || "Chat request failed";
 }
 
-async function requestChatFallback(message) {
+async function requestChatFallback(messages) {
   const response = await fetch(`${API_BASE_URL}/api/v1/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ messages }),
   });
 
   if (!response.ok) {
@@ -33,7 +33,7 @@ async function requestChatFallback(message) {
 
 function App() {
   const [message, setMessage] = useState("");
-  const [reply, setReply] = useState("");
+  const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [health, setHealth] = useState("loading");
@@ -67,7 +67,11 @@ function App() {
 
     setIsSubmitting(true);
     setError("");
-    setReply("");
+    setMessage("");
+
+    const userMessage = { role: "user", content: trimmedMessage };
+    const requestMessages = [...messages, userMessage];
+    setMessages([...requestMessages, { role: "assistant", content: "" }]);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/chat/stream`, {
@@ -75,7 +79,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: trimmedMessage }),
+        body: JSON.stringify({ messages: requestMessages }),
       });
 
       if (!response.ok) {
@@ -83,7 +87,8 @@ function App() {
       }
 
       if (!response.body) {
-        setReply(await requestChatFallback(trimmedMessage));
+        const fallbackReply = await requestChatFallback(requestMessages);
+        setMessages([...requestMessages, { role: "assistant", content: fallbackReply }]);
         return;
       }
 
@@ -98,21 +103,27 @@ function App() {
         }
 
         accumulatedReply += decoder.decode(value, { stream: true });
-        setReply(accumulatedReply);
+        setMessages([...requestMessages, { role: "assistant", content: accumulatedReply }]);
       }
 
       accumulatedReply += decoder.decode();
-      setReply(accumulatedReply);
+      setMessages([...requestMessages, { role: "assistant", content: accumulatedReply }]);
 
       if (!accumulatedReply) {
         throw new Error("Model не вернул текст ответа.");
       }
     } catch (requestError) {
-      setReply("");
+      setMessages(requestMessages);
       setError(requestError.message || "Не удалось получить ответ от backend.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleClearChat = () => {
+    setMessages([]);
+    setMessage("");
+    setError("");
   };
 
   return (
@@ -137,15 +148,41 @@ function App() {
             onChange={(event) => setMessage(event.target.value)}
             placeholder="Введите тестовое сообщение"
           />
-          <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Генерация..." : "Отправить"}
-          </button>
+          <div className="form-actions">
+            <button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Генерация..." : "Отправить"}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleClearChat}
+              disabled={isSubmitting || messages.length === 0}
+            >
+              Очистить чат
+            </button>
+          </div>
         </form>
 
         <div className="response-block">
-          <h2>Ответ</h2>
+          <h2>Диалог</h2>
           {error ? <p className="error">{error}</p> : null}
-          {reply ? <pre>{reply}</pre> : <p className="muted">Ответ пока не получен.</p>}
+          {messages.length ? (
+            <div className="message-list">
+              {messages.map((item, index) => (
+                <div
+                  key={`${item.role}-${index}`}
+                  className={`message-card message-card-${item.role}`}
+                >
+                  <div className="message-role">
+                    {item.role === "user" ? "Вы" : "DJAI"}
+                  </div>
+                  <pre>{item.content || (isSubmitting && index === messages.length - 1 ? "..." : "")}</pre>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">Диалог пока пуст.</p>
+          )}
         </div>
 
         <p className="api-note">API base URL: {API_BASE_URL}</p>

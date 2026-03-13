@@ -68,6 +68,12 @@ body {
   gap: 12px;
 }
 
+.form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 label {
   font-weight: 600;
 }
@@ -92,6 +98,11 @@ button {
   cursor: pointer;
 }
 
+.secondary-button {
+  background: #d9e2ec;
+  color: #243b53;
+}
+
 button:disabled {
   opacity: 0.7;
   cursor: wait;
@@ -101,12 +112,36 @@ button:disabled {
   margin-top: 24px;
 }
 
+.message-list {
+  display: grid;
+  gap: 12px;
+}
+
+.message-card {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #d9e2ec;
+}
+
+.message-card-user {
+  background: #eef4ff;
+}
+
+.message-card-assistant {
+  background: #f3f6f8;
+}
+
+.message-role {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
 pre {
   margin: 0;
   padding: 12px;
   white-space: pre-wrap;
   border-radius: 8px;
-  background: #f3f6f8;
+  background: #ffffff;
   border: 1px solid #d9e2ec;
 }
 
