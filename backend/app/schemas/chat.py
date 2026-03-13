@@ -7,5 +7,5 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
-    source: str = "stub"
+    source: str = "model"
     model_endpoint_configured: bool

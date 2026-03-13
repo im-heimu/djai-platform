@@ -9,9 +9,12 @@ services:
       BACKEND_HOST: ${BACKEND_HOST:-0.0.0.0}
       BACKEND_PORT: ${BACKEND_PORT:-8000}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
-      FUTURE_MODEL_ENDPOINT: ${FUTURE_MODEL_ENDPOINT:-}
+      MODEL_API_BASE_URL: ${MODEL_API_BASE_URL:-}
+      MODEL_API_KEY: ${MODEL_API_KEY:-}
+      MODEL_NAME: ${MODEL_NAME:-}
+      MODEL_TIMEOUT_SECONDS: ${MODEL_TIMEOUT_SECONDS:-30}
     command: >
-      uvicorn app.main:app
+      uv run --no-sync uvicorn app.main:app
       --host ${BACKEND_HOST:-0.0.0.0}
       --port ${BACKEND_PORT:-8000}
     ports:

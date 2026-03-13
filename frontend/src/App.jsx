@@ -48,15 +48,15 @@ function App() {
         body: JSON.stringify({ message: trimmedMessage }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error("Chat request failed");
+        throw new Error(data.detail || "Chat request failed");
       }
 
-      const data = await response.json();
       setReply(data.reply);
     } catch (requestError) {
       setReply("");
-      setError("Не удалось получить ответ от backend.");
+      setError(requestError.message || "Не удалось получить ответ от backend.");
     } finally {
       setIsSubmitting(false);
     }

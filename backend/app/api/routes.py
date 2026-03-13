@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.services.chat import build_stub_chat_response
+from app.services.chat import ModelServiceError, request_chat_completion
 
 system_router = APIRouter()
 chat_router = APIRouter()
@@ -14,11 +14,14 @@ def health() -> dict[str, str]:
 
 
 @chat_router.post("/chat", response_model=ChatResponse)
-def chat(
+async def chat(
     payload: ChatRequest,
     settings: Settings = Depends(get_settings),
 ) -> ChatResponse:
-    return build_stub_chat_response(
-        message=payload.message,
-        model_endpoint=settings.future_model_endpoint,
-    )
+    try:
+        return await request_chat_completion(
+            message=payload.message,
+            settings=settings,
+        )
+    except ModelServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc

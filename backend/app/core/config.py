@@ -1,10 +1,20 @@
 from dataclasses import dataclass, field
 from functools import lru_cache
+
 import os
 
 
 def _split_csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _parse_positive_float(value: str) -> float | None:
+    try:
+        parsed = float(value)
+    except ValueError:
+        return None
+
+    return parsed if parsed > 0 else None
 
 
 @dataclass(frozen=True)
@@ -21,8 +31,17 @@ class Settings:
             )
         )
     )
-    future_model_endpoint: str = field(
-        default_factory=lambda: os.getenv("FUTURE_MODEL_ENDPOINT", "")
+    model_api_base_url: str = field(
+        default_factory=lambda: os.getenv("MODEL_API_BASE_URL", "").strip()
+    )
+    model_api_key: str = field(
+        default_factory=lambda: os.getenv("MODEL_API_KEY", "").strip()
+    )
+    model_name: str = field(default_factory=lambda: os.getenv("MODEL_NAME", "").strip())
+    model_timeout_seconds: float | None = field(
+        default_factory=lambda: _parse_positive_float(
+            os.getenv("MODEL_TIMEOUT_SECONDS", "30")
+        )
     )
 
 

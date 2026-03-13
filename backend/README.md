@@ -6,18 +6,24 @@
 
 - `GET /health`
 - `POST /api/v1/chat`
-- простой stub-ответ без реальной LLM-интеграции
+- прямой вызов OpenAI-compatible chat completions API
 - базовые настройки через переменные окружения
 - CORS для локального frontend
 
 ## Локальный запуск
 
 ```bash
-pip install -e .
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv sync --locked
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Команду нужно запускать из каталога `backend/`.
+
+Если меняются зависимости, обновляйте lockfile командой:
+
+```bash
+uv lock
+```
 
 ## Переменные окружения
 
@@ -26,6 +32,11 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `BACKEND_HOST`
 - `BACKEND_PORT`
 - `BACKEND_CORS_ORIGINS`
-- `FUTURE_MODEL_ENDPOINT`
+- `MODEL_API_BASE_URL`
+- `MODEL_API_KEY`
+- `MODEL_NAME`
+- `MODEL_TIMEOUT_SECONDS`
 
-`FUTURE_MODEL_ENDPOINT` пока не используется в реальном вызове model. Это задел под следующий шаг.
+`MODEL_API_BASE_URL` обычно должен указывать на OpenAI-compatible API base URL вида `.../v1`. Backend сам добавляет `/chat/completions`, если его нет в конфигурации.
+
+Без корректных `MODEL_API_BASE_URL`, `MODEL_API_KEY` и `MODEL_NAME` endpoint `/api/v1/chat` вернёт читаемую ошибку конфигурации.
