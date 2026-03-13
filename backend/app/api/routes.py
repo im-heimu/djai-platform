@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.core.config import Settings, get_settings
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import ChatRequest, ChatResponse, RuntimeResponse
 from app.services.chat import (
     ModelServiceError,
     create_chat_completion_stream,
+    get_runtime_diagnostics,
     request_chat_completion,
 )
 
@@ -30,6 +31,13 @@ async def chat(
         )
     except ModelServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+
+@chat_router.get("/runtime", response_model=RuntimeResponse)
+def runtime(
+    settings: Settings = Depends(get_settings),
+) -> RuntimeResponse:
+    return get_runtime_diagnostics(settings)
 
 
 @chat_router.post("/chat/stream")

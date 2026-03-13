@@ -44,6 +44,16 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [health, setHealth] = useState("loading");
+  const [runtime, setRuntime] = useState(null);
+  const [runtimeError, setRuntimeError] = useState("");
+
+  const formatRuntimeValue = (value, suffix = "") => {
+    if (value === null || value === undefined || value === "") {
+      return "—";
+    }
+
+    return `${value}${suffix}`;
+  };
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -61,6 +71,25 @@ function App() {
     };
 
     checkHealth();
+  }, []);
+
+  useEffect(() => {
+    const loadRuntime = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/runtime`);
+        if (!response.ok) {
+          throw new Error("Runtime diagnostics request failed");
+        }
+
+        const data = await response.json();
+        setRuntime(data);
+        setRuntimeError("");
+      } catch (runtimeFetchError) {
+        setRuntimeError("Не удалось загрузить runtime diagnostics.");
+      }
+    };
+
+    loadRuntime();
   }, []);
 
   useEffect(() => {
@@ -176,6 +205,53 @@ function App() {
         </div>
 
         <form className="chat-form" onSubmit={handleSubmit}>
+          <div className="diagnostics-block">
+            <h2>Runtime</h2>
+            {runtimeError ? <p className="muted">{runtimeError}</p> : null}
+            {!runtime && !runtimeError ? <p className="muted">Загрузка runtime...</p> : null}
+            {runtime ? (
+              <>
+                <div className="diagnostics-grid">
+                  <div className="diagnostic-item">
+                    <span className="diagnostic-label">Статус</span>
+                    <span
+                      className={
+                        runtime.runtime_ready
+                          ? "runtime-status runtime-status-ready"
+                          : "runtime-status runtime-status-error"
+                      }
+                    >
+                      {runtime.runtime_ready ? "ready" : "not ready"}
+                    </span>
+                  </div>
+                  <div className="diagnostic-item">
+                    <span className="diagnostic-label">Model</span>
+                    <span>{formatRuntimeValue(runtime.model_name)}</span>
+                  </div>
+                  <div className="diagnostic-item">
+                    <span className="diagnostic-label">Timeout</span>
+                    <span>{formatRuntimeValue(runtime.model_timeout_seconds, "s")}</span>
+                  </div>
+                  <div className="diagnostic-item">
+                    <span className="diagnostic-label">System prompt</span>
+                    <span>{runtime.system_prompt_enabled ? "enabled" : "disabled"}</span>
+                  </div>
+                  <div className="diagnostic-item">
+                    <span className="diagnostic-label">Temperature</span>
+                    <span>{formatRuntimeValue(runtime.model_temperature)}</span>
+                  </div>
+                  <div className="diagnostic-item">
+                    <span className="diagnostic-label">Max tokens</span>
+                    <span>{formatRuntimeValue(runtime.model_max_tokens)}</span>
+                  </div>
+                </div>
+                {runtime.configuration_error ? (
+                  <p className="error runtime-error">{runtime.configuration_error}</p>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+
           <label htmlFor="message">Сообщение</label>
           <textarea
             id="message"

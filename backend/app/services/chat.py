@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 import httpx
 
 from app.core.config import Settings
-from app.schemas.chat import ChatMessage, ChatResponse
+from app.schemas.chat import ChatMessage, ChatResponse, RuntimeResponse
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,17 @@ def _build_headers(settings: Settings) -> dict[str, str]:
         "Authorization": f"Bearer {settings.model_api_key}",
         "Content-Type": "application/json",
     }
+
+
+def _is_runtime_model_configured(settings: Settings) -> bool:
+    return (
+        bool(settings.model_api_base_url)
+        and settings.model_api_base_url != PLACEHOLDER_MODEL_BASE_URL
+        and bool(settings.model_api_key)
+        and settings.model_api_key != PLACEHOLDER_MODEL_API_KEY
+        and bool(settings.model_name)
+        and settings.model_name != PLACEHOLDER_MODEL_NAME
+    )
 
 
 def _extract_reply(data: dict) -> str | None:
@@ -207,6 +218,32 @@ async def _extract_upstream_error_from_response(response: httpx.Response) -> str
         return None
 
     return _extract_upstream_error(payload)
+
+
+def get_runtime_diagnostics(settings: Settings) -> RuntimeResponse:
+    configuration_error = None
+
+    try:
+        _validate_settings(settings)
+    except ModelServiceError as exc:
+        configuration_error = exc.message
+
+    temperature = settings.model_temperature
+    if temperature is not None and not math.isfinite(temperature):
+        temperature = None
+
+    return RuntimeResponse(
+        runtime_ready=configuration_error is None,
+        model_configured=_is_runtime_model_configured(settings),
+        model_api_base_url_present=bool(settings.model_api_base_url),
+        model_api_key_present=bool(settings.model_api_key),
+        model_name=settings.model_name or None,
+        model_timeout_seconds=settings.model_timeout_seconds,
+        system_prompt_enabled=bool(settings.system_prompt),
+        model_temperature=temperature,
+        model_max_tokens=settings.model_max_tokens,
+        configuration_error=configuration_error,
+    )
 
 
 async def request_chat_completion(

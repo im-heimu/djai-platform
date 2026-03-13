@@ -5,6 +5,7 @@
 Что есть сейчас:
 
 - `GET /health`
+- `GET /api/v1/runtime`
 - `POST /api/v1/chat`
 - `POST /api/v1/chat/stream`
 - прямой вызов OpenAI-compatible chat completions API
@@ -46,6 +47,8 @@ uv lock
 `MODEL_API_BASE_URL` обычно должен указывать на OpenAI-compatible API base URL вида `.../v1`. Backend сам добавляет `/chat/completions`, если его нет в конфигурации.
 
 Без корректных `MODEL_API_BASE_URL`, `MODEL_API_KEY` и `MODEL_NAME` endpoint `/api/v1/chat` вернёт читаемую ошибку конфигурации.
+
+`GET /api/v1/runtime` отдаёт безопасный snapshot текущей runtime-конфигурации: готов ли backend к chat-запросам, включён ли `SYSTEM_PROMPT`, какие timeout/temperature/max tokens заданы. Секреты и полный текст system prompt не возвращаются.
 
 Если `SYSTEM_PROMPT` не пустой, backend добавляет его как глобальное `system`-сообщение перед всей историей диалога.
 

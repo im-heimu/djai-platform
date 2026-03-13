@@ -33,3 +33,16 @@ class ChatResponse(BaseModel):
     reply: str
     source: str = "model"
     model_endpoint_configured: bool
+
+
+class RuntimeResponse(BaseModel):
+    runtime_ready: bool
+    model_configured: bool
+    model_api_base_url_present: bool
+    model_api_key_present: bool
+    model_name: str | None = None
+    model_timeout_seconds: float | None = None
+    system_prompt_enabled: bool
+    model_temperature: float | None = None
+    model_max_tokens: int | None = None
+    configuration_error: str | None = None
