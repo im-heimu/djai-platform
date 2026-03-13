@@ -74,6 +74,14 @@ class Settings:
     model_max_tokens: int | None = field(
         default_factory=lambda: _parse_optional_int(os.getenv("MODEL_MAX_TOKENS", ""))
     )
+    max_conversation_messages: int | None = field(
+        default_factory=lambda: _parse_optional_int(
+            os.getenv("MAX_CONVERSATION_MESSAGES", "20")
+        )
+    )
+    max_message_chars: int | None = field(
+        default_factory=lambda: _parse_optional_int(os.getenv("MAX_MESSAGE_CHARS", "4000"))
+    )
 
 
 @lru_cache

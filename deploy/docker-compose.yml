@@ -16,6 +16,8 @@ services:
       SYSTEM_PROMPT: ${SYSTEM_PROMPT:-}
       MODEL_TEMPERATURE: ${MODEL_TEMPERATURE:-}
       MODEL_MAX_TOKENS: ${MODEL_MAX_TOKENS:-}
+      MAX_CONVERSATION_MESSAGES: ${MAX_CONVERSATION_MESSAGES:-20}
+      MAX_MESSAGE_CHARS: ${MAX_MESSAGE_CHARS:-4000}
     command: >
       uv run --no-sync uvicorn app.main:app
       --host ${BACKEND_HOST:-0.0.0.0}

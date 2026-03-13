@@ -90,11 +90,18 @@ docker compose -f deploy/docker-compose.yml up --build
 - `MODEL_TEMPERATURE`
 - `MODEL_MAX_TOKENS`
 
+Для предсказуемого chat flow также доступны backend-лимиты:
+
+- `MAX_CONVERSATION_MESSAGES`
+- `MAX_MESSAGE_CHARS`
+
 Backend ожидает OpenAI-compatible chat completions API и возвращает первую текстовую часть ответа model через существующий `/api/v1/chat`.
 
 Frontend по умолчанию использует `POST /api/v1/chat/stream` и показывает ответ постепенно по мере генерации. Обычный `POST /api/v1/chat` сохранён как нестриминговый режим.
 
 Текущий chat UI хранит историю диалога только в памяти страницы и отправляет весь `messages[]` в backend для multi-turn режима.
+
+Backend может ограничивать длину последнего user-сообщения и обрезать старую историю с начала перед отправкой в upstream model API.
 
 ## Roadmap
 

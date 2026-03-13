@@ -74,6 +74,13 @@ def _build_headers(settings: Settings) -> dict[str, str]:
     }
 
 
+def _normalize_positive_int(value: int | None) -> int | None:
+    if value is None or value <= 0:
+        return None
+
+    return value
+
+
 def _is_runtime_model_configured(settings: Settings) -> bool:
     return (
         bool(settings.model_api_base_url)
@@ -163,6 +170,38 @@ def _extract_stream_delta(data: dict) -> str:
     return ""
 
 
+def _get_latest_user_message(messages: list[ChatMessage]) -> ChatMessage | None:
+    for message in reversed(messages):
+        if message.role == "user":
+            return message
+
+    return None
+
+
+def _apply_conversation_limits(
+    messages: list[ChatMessage],
+    settings: Settings,
+) -> list[ChatMessage]:
+    latest_user_message = _get_latest_user_message(messages)
+    if (
+        latest_user_message
+        and settings.max_message_chars is not None
+        and len(latest_user_message.content) > settings.max_message_chars
+    ):
+        raise ModelServiceError(
+            f"Сообщение слишком длинное. Максимум: {settings.max_message_chars} символов.",
+            status_code=400,
+        )
+
+    if (
+        settings.max_conversation_messages is None
+        or len(messages) <= settings.max_conversation_messages
+    ):
+        return messages
+
+    return messages[-settings.max_conversation_messages :]
+
+
 def _validate_settings(settings: Settings) -> None:
     if (
         not settings.model_api_base_url
@@ -207,6 +246,21 @@ def _validate_settings(settings: Settings) -> None:
             status_code=500,
         )
 
+    if (
+        settings.max_conversation_messages is not None
+        and settings.max_conversation_messages <= 0
+    ):
+        raise ModelServiceError(
+            "MAX_CONVERSATION_MESSAGES должен быть положительным целым числом.",
+            status_code=500,
+        )
+
+    if settings.max_message_chars is not None and settings.max_message_chars <= 0:
+        raise ModelServiceError(
+            "MAX_MESSAGE_CHARS должен быть положительным целым числом.",
+            status_code=500,
+        )
+
 
 async def _extract_upstream_error_from_response(response: httpx.Response) -> str | None:
     try:
@@ -241,7 +295,11 @@ def get_runtime_diagnostics(settings: Settings) -> RuntimeResponse:
         model_timeout_seconds=settings.model_timeout_seconds,
         system_prompt_enabled=bool(settings.system_prompt),
         model_temperature=temperature,
-        model_max_tokens=settings.model_max_tokens,
+        model_max_tokens=_normalize_positive_int(settings.model_max_tokens),
+        max_conversation_messages=_normalize_positive_int(
+            settings.max_conversation_messages
+        ),
+        max_message_chars=_normalize_positive_int(settings.max_message_chars),
         configuration_error=configuration_error,
     )
 
@@ -251,9 +309,10 @@ async def request_chat_completion(
     settings: Settings,
 ) -> ChatResponse:
     _validate_settings(settings)
+    prepared_messages = _apply_conversation_limits(messages, settings)
     request_url = _build_chat_completions_url(settings.model_api_base_url)
     payload = _build_chat_payload(
-        messages=messages,
+        messages=prepared_messages,
         settings=settings,
     )
     headers = _build_headers(settings)
@@ -321,9 +380,10 @@ async def create_chat_completion_stream(
     settings: Settings,
 ) -> AsyncIterator[str]:
     _validate_settings(settings)
+    prepared_messages = _apply_conversation_limits(messages, settings)
     request_url = _build_chat_completions_url(settings.model_api_base_url)
     payload = _build_chat_payload(
-        messages=messages,
+        messages=prepared_messages,
         settings=settings,
         stream=True,
     )

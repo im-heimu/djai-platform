@@ -45,4 +45,6 @@ class RuntimeResponse(BaseModel):
     system_prompt_enabled: bool
     model_temperature: float | None = None
     model_max_tokens: int | None = None
+    max_conversation_messages: int | None = None
+    max_message_chars: int | None = None
     configuration_error: str | None = None
