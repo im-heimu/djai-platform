@@ -1,7 +1,7 @@
+import math
+import os
 from dataclasses import dataclass, field
 from functools import lru_cache
-
-import os
 
 
 def _split_csv(value: str) -> list[str]:
@@ -15,6 +15,28 @@ def _parse_positive_float(value: str) -> float | None:
         return None
 
     return parsed if parsed > 0 else None
+
+
+def _parse_optional_float(value: str) -> float | None:
+    normalized = value.strip()
+    if not normalized:
+        return None
+
+    try:
+        return float(normalized)
+    except ValueError:
+        return math.nan
+
+
+def _parse_optional_int(value: str) -> int | None:
+    normalized = value.strip()
+    if not normalized:
+        return None
+
+    try:
+        return int(normalized)
+    except ValueError:
+        return 0
 
 
 @dataclass(frozen=True)
@@ -42,6 +64,15 @@ class Settings:
         default_factory=lambda: _parse_positive_float(
             os.getenv("MODEL_TIMEOUT_SECONDS", "30")
         )
+    )
+    system_prompt: str = field(default_factory=lambda: os.getenv("SYSTEM_PROMPT", "").strip())
+    model_temperature: float | None = field(
+        default_factory=lambda: _parse_optional_float(
+            os.getenv("MODEL_TEMPERATURE", "")
+        )
+    )
+    model_max_tokens: int | None = field(
+        default_factory=lambda: _parse_optional_int(os.getenv("MODEL_MAX_TOKENS", ""))
     )
 
 

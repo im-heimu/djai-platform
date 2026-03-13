@@ -84,6 +84,12 @@ docker compose -f deploy/docker-compose.yml up --build
 - `MODEL_NAME`
 - `MODEL_TIMEOUT_SECONDS`
 
+Опционально можно задать глобальное поведение model через:
+
+- `SYSTEM_PROMPT`
+- `MODEL_TEMPERATURE`
+- `MODEL_MAX_TOKENS`
+
 Backend ожидает OpenAI-compatible chat completions API и возвращает первую текстовую часть ответа model через существующий `/api/v1/chat`.
 
 Frontend по умолчанию использует `POST /api/v1/chat/stream` и показывает ответ постепенно по мере генерации. Обычный `POST /api/v1/chat` сохранён как нестриминговый режим.

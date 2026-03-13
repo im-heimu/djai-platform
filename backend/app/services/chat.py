@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 from collections.abc import AsyncIterator
 
 import httpx
@@ -30,14 +31,40 @@ def _build_chat_completions_url(base_url: str) -> str:
 
 def _build_chat_payload(
     messages: list[ChatMessage],
-    model_name: str,
+    settings: Settings,
     stream: bool = False,
 ) -> dict:
-    return {
-        "model": model_name,
-        "messages": [message.model_dump() for message in messages],
+    payload = {
+        "model": settings.model_name,
+        "messages": _build_upstream_messages(messages, settings),
         "stream": stream,
     }
+
+    if settings.model_temperature is not None:
+        payload["temperature"] = settings.model_temperature
+
+    if settings.model_max_tokens is not None:
+        payload["max_tokens"] = settings.model_max_tokens
+
+    return payload
+
+
+def _build_upstream_messages(
+    messages: list[ChatMessage],
+    settings: Settings,
+) -> list[dict[str, str]]:
+    upstream_messages: list[dict[str, str]] = []
+
+    if settings.system_prompt:
+        upstream_messages.append(
+            {
+                "role": "system",
+                "content": settings.system_prompt,
+            }
+        )
+
+    upstream_messages.extend(message.model_dump() for message in messages)
+    return upstream_messages
 
 
 def _build_headers(settings: Settings) -> dict[str, str]:
@@ -153,6 +180,22 @@ def _validate_settings(settings: Settings) -> None:
             status_code=500,
         )
 
+    if settings.model_temperature is not None and (
+        not math.isfinite(settings.model_temperature)
+        or settings.model_temperature < 0
+        or settings.model_temperature > 2
+    ):
+        raise ModelServiceError(
+            "MODEL_TEMPERATURE должен быть числом от 0 до 2.",
+            status_code=500,
+        )
+
+    if settings.model_max_tokens is not None and settings.model_max_tokens <= 0:
+        raise ModelServiceError(
+            "MODEL_MAX_TOKENS должен быть положительным целым числом.",
+            status_code=500,
+        )
+
 
 async def _extract_upstream_error_from_response(response: httpx.Response) -> str | None:
     try:
@@ -174,7 +217,7 @@ async def request_chat_completion(
     request_url = _build_chat_completions_url(settings.model_api_base_url)
     payload = _build_chat_payload(
         messages=messages,
-        model_name=settings.model_name,
+        settings=settings,
     )
     headers = _build_headers(settings)
 
@@ -244,7 +287,7 @@ async def create_chat_completion_stream(
     request_url = _build_chat_completions_url(settings.model_api_base_url)
     payload = _build_chat_payload(
         messages=messages,
-        model_name=settings.model_name,
+        settings=settings,
         stream=True,
     )
     headers = _build_headers(settings)
