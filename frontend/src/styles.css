@@ -103,6 +103,11 @@ button {
   color: #243b53;
 }
 
+.stop-button {
+  background: #d64545;
+  color: #ffffff;
+}
+
 button:disabled {
   opacity: 0.7;
   cursor: wait;
@@ -147,4 +152,9 @@ pre {
 
 .error {
   color: #b42318;
+}
+
+.status-message {
+  margin-top: 0;
+  margin-bottom: 12px;
 }
