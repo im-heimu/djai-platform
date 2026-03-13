@@ -79,8 +79,14 @@ function ChatMessageBubble({ item, isStreamingMessage }) {
   );
 }
 
+function isNearTranscriptBottom(element) {
+  return element.scrollHeight - element.scrollTop - element.clientHeight < 96;
+}
+
 function App() {
   const abortControllerRef = useRef(null);
+  const transcriptRef = useRef(null);
+  const shouldStickToBottomRef = useRef(true);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
@@ -172,6 +178,24 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const transcriptElement = transcriptRef.current;
+    if (!transcriptElement || !shouldStickToBottomRef.current) {
+      return;
+    }
+
+    transcriptElement.scrollTop = transcriptElement.scrollHeight;
+  }, [messages, isSubmitting]);
+
+  const handleTranscriptScroll = () => {
+    const transcriptElement = transcriptRef.current;
+    if (!transcriptElement) {
+      return;
+    }
+
+    shouldStickToBottomRef.current = isNearTranscriptBottom(transcriptElement);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const trimmedMessage = message.trim();
@@ -185,6 +209,7 @@ function App() {
     setError("");
     setStatusMessage("");
     setMessage("");
+    shouldStickToBottomRef.current = true;
 
     const userMessage = { role: "user", content: trimmedMessage };
     const requestMessages = [...messages, userMessage];
@@ -259,6 +284,7 @@ function App() {
 
   const handleClearChat = () => {
     abortControllerRef.current?.abort();
+    shouldStickToBottomRef.current = true;
     setMessages([]);
     setMessage("");
     setError("");
@@ -323,6 +349,8 @@ function App() {
                 aria-label="История диалога"
                 aria-live="polite"
                 aria-busy={isSubmitting}
+                ref={transcriptRef}
+                onScroll={handleTranscriptScroll}
               >
                 {messages.length ? (
                   <div className="message-list">
