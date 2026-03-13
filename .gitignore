@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.python-version
+.venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# JavaScript / TypeScript
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.turbo/
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
+*.tsbuildinfo
+
+# Docker and containers
+.docker/
+docker-data/
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Caches and temp files
+.cache/
+.tmp/
+tmp/
+temp/
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
