@@ -6,7 +6,9 @@
 
 - `GET /health`
 - `POST /api/v1/chat`
+- `POST /api/v1/chat/stream`
 - прямой вызов OpenAI-compatible chat completions API
+- потоковый plain-text ответ для frontend
 - базовые настройки через переменные окружения
 - CORS для локального frontend
 
@@ -40,3 +42,5 @@ uv lock
 `MODEL_API_BASE_URL` обычно должен указывать на OpenAI-compatible API base URL вида `.../v1`. Backend сам добавляет `/chat/completions`, если его нет в конфигурации.
 
 Без корректных `MODEL_API_BASE_URL`, `MODEL_API_KEY` и `MODEL_NAME` endpoint `/api/v1/chat` вернёт читаемую ошибку конфигурации.
+
+`POST /api/v1/chat/stream` сохраняет обычный HTTP-подход и отдаёт текст по мере генерации ответа. WebSocket и отдельная event-схема пока не используются.

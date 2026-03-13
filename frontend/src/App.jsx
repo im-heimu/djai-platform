@@ -2,6 +2,35 @@ import { useEffect, useState } from "react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+async function parseErrorResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    const data = await response.json();
+    return data.detail || "Chat request failed";
+  }
+
+  const text = await response.text();
+  return text || "Chat request failed";
+}
+
+async function requestChatFallback(message) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseErrorResponse(response));
+  }
+
+  const data = await response.json();
+  return data.reply;
+}
+
 function App() {
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
@@ -38,9 +67,10 @@ function App() {
 
     setIsSubmitting(true);
     setError("");
+    setReply("");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/chat/stream`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,12 +78,35 @@ function App() {
         body: JSON.stringify({ message: trimmedMessage }),
       });
 
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.detail || "Chat request failed");
+        throw new Error(await parseErrorResponse(response));
       }
 
-      setReply(data.reply);
+      if (!response.body) {
+        setReply(await requestChatFallback(trimmedMessage));
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedReply = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        accumulatedReply += decoder.decode(value, { stream: true });
+        setReply(accumulatedReply);
+      }
+
+      accumulatedReply += decoder.decode();
+      setReply(accumulatedReply);
+
+      if (!accumulatedReply) {
+        throw new Error("Model не вернул текст ответа.");
+      }
     } catch (requestError) {
       setReply("");
       setError(requestError.message || "Не удалось получить ответ от backend.");
@@ -85,7 +138,7 @@ function App() {
             placeholder="Введите тестовое сообщение"
           />
           <button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Отправка..." : "Отправить"}
+            {isSubmitting ? "Генерация..." : "Отправить"}
           </button>
         </form>
 

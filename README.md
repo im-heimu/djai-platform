@@ -77,7 +77,7 @@ docker compose -f deploy/docker-compose.yml up --build
 - backend: `http://localhost:8000/health`
 - frontend: `http://localhost:5173`
 
-Для реального chat flow заполните в `.env`:
+Для реального chat flow заполните в `deploy/.env`:
 
 - `MODEL_API_BASE_URL`
 - `MODEL_API_KEY`
@@ -85,6 +85,8 @@ docker compose -f deploy/docker-compose.yml up --build
 - `MODEL_TIMEOUT_SECONDS`
 
 Backend ожидает OpenAI-compatible chat completions API и возвращает первую текстовую часть ответа model через существующий `/api/v1/chat`.
+
+Frontend по умолчанию использует `POST /api/v1/chat/stream` и показывает ответ постепенно по мере генерации. Обычный `POST /api/v1/chat` сохранён как нестриминговый режим.
 
 ## Roadmap
 
