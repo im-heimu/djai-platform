@@ -48,6 +48,37 @@ function getHealthMeta(health) {
   return { label: "Backend: error", tone: "error" };
 }
 
+function StatusPill({ tone, children }) {
+  return <span className={`status-pill status-pill-${tone}`}>{children}</span>;
+}
+
+function RuntimeMetric({ label, value, tone }) {
+  return (
+    <div className="runtime-item">
+      <dt>{label}</dt>
+      <dd className={tone ? `runtime-value runtime-value-${tone}` : "runtime-value"}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function ChatMessageBubble({ item, isStreamingMessage }) {
+  return (
+    <article className={`message-row message-row-${item.role}`}>
+      <div className={`message-bubble message-bubble-${item.role}`}>
+        <div className="message-meta">
+          <span className="message-role">{item.role === "user" ? "Вы" : "DJAI"}</span>
+          {isStreamingMessage ? <span className="message-state">Генерация...</span> : null}
+        </div>
+        <pre className="message-content">
+          {item.content || (isStreamingMessage ? "..." : "")}
+        </pre>
+      </div>
+    </article>
+  );
+}
+
 function App() {
   const abortControllerRef = useRef(null);
   const [message, setMessage] = useState("");
@@ -239,25 +270,22 @@ function App() {
       <section className="app-frame">
         <header className="app-header">
           <div className="app-header-copy">
-            <p className="eyebrow">DJAI Platform</p>
-            <h1>Минимальный chat UI</h1>
+            <div className="header-kicker">
+              <p className="eyebrow">DJAI Platform</p>
+              <span className="phase-chip">Pre-alpha</span>
+            </div>
+            <h1>Рабочая область диалога</h1>
             <p className="subtitle">
-              Pre-alpha интерфейс для проверки текущего chat flow, streaming и runtime
-              конфигурации.
+              Спокойный технический интерфейс для проверки текущего chat flow,
+              streaming и runtime-конфигурации.
             </p>
           </div>
           <div className="status-group">
-            <span className={`status-pill status-pill-${healthMeta.tone}`}>
-              {healthMeta.label}
-            </span>
+            <StatusPill tone={healthMeta.tone}>{healthMeta.label}</StatusPill>
             {runtime ? (
-              <span
-                className={`status-pill ${
-                  runtime.runtime_ready ? "status-pill-ready" : "status-pill-error"
-                }`}
-              >
+              <StatusPill tone={runtime.runtime_ready ? "ready" : "error"}>
                 Runtime: {runtime.runtime_ready ? "ready" : "not ready"}
-              </span>
+              </StatusPill>
             ) : null}
           </div>
         </header>
@@ -289,7 +317,13 @@ function App() {
                 </p>
               ) : null}
 
-              <div className="transcript" aria-live="polite" aria-busy={isSubmitting}>
+              <div
+                className="transcript"
+                role="log"
+                aria-label="История диалога"
+                aria-live="polite"
+                aria-busy={isSubmitting}
+              >
                 {messages.length ? (
                   <div className="message-list">
                     {messages.map((item, index) => {
@@ -299,29 +333,17 @@ function App() {
                         index === messages.length - 1;
 
                       return (
-                        <article
+                        <ChatMessageBubble
                           key={`${item.role}-${index}`}
-                          className={`message-row message-row-${item.role}`}
-                        >
-                          <div className={`message-bubble message-bubble-${item.role}`}>
-                            <div className="message-meta">
-                              <span className="message-role">
-                                {item.role === "user" ? "Вы" : "DJAI"}
-                              </span>
-                              {isStreamingMessage ? (
-                                <span className="message-state">Генерация...</span>
-                              ) : null}
-                            </div>
-                            <pre className="message-content">
-                              {item.content || (isStreamingMessage ? "..." : "")}
-                            </pre>
-                          </div>
-                        </article>
+                          item={item}
+                          isStreamingMessage={isStreamingMessage}
+                        />
                       );
                     })}
                   </div>
                 ) : (
                   <div className="empty-state">
+                    <p className="empty-state-eyebrow">Chat</p>
                     <h3>Диалог пока пуст</h3>
                     <p className="muted">
                       Отправьте первое сообщение, чтобы проверить текущий chat flow.
@@ -349,6 +371,7 @@ function App() {
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 placeholder="Введите тестовое сообщение"
+                aria-label="Сообщение для модели"
               />
 
               <div className="composer-footer">
@@ -405,18 +428,12 @@ function App() {
                 <>
                   <dl className="runtime-list">
                     {runtimeItems.map((item) => (
-                      <div key={item.label} className="runtime-item">
-                        <dt>{item.label}</dt>
-                        <dd
-                          className={
-                            item.tone
-                              ? `runtime-value runtime-value-${item.tone}`
-                              : "runtime-value"
-                          }
-                        >
-                          {item.value}
-                        </dd>
-                      </div>
+                      <RuntimeMetric
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                        tone={item.tone}
+                      />
                     ))}
                   </dl>
 
