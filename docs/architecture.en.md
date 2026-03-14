@@ -1,91 +1,83 @@
 # Architecture Draft
 
-This is the initial architecture draft for DJAI Platform. It describes the intended high-level structure, not an already implemented system.
+This is the working architecture draft for DJAI Platform. It separates the current implementation from the intended direction so the repository does not imply a more complete platform than it actually has.
 
 The main maintainer-facing version of this document is Russian: [architecture.md](architecture.md).
 
+## Current Implementation Snapshot
+
+The repository currently contains a narrow working slice:
+
+- one FastAPI backend as a modular monolith
+- one React/Vite frontend
+- `GET /health`, `GET /api/v1/runtime`, `POST /api/v1/chat`, `POST /api/v1/chat/stream`
+- one OpenAI-compatible model endpoint configured through env
+- runtime settings for system prompt and model parameters
+- server-side message limits and history trimming
+- simple Docker Compose startup for local and basic on-prem use
+
+Auth, persistence, knowledge/RAG, agents/tools, multi-model orchestration, and a real admin layer are still not implemented.
+
 ## Goals
 
-- Build an on-prem AI platform for infrastructure controlled by the organization itself.
-- Separate core concerns such as access, model access, retrieval, orchestration, and administration.
-- Support integration with internal identity, data, and operational systems.
-- Keep the design modular enough to avoid early lock-in to one vendor or one deployment model.
+- Build an on-prem AI platform for infrastructure controlled by the operator.
+- Keep the early system simple and cheap to change.
+- Gradually establish clearer boundaries around API, model access, auth/integration, and later platform layers.
+- Avoid premature lock-in to one deployment shape or vendor.
 
 ## Design Principles
 
-- **On-prem first:** assume customer-controlled infrastructure and security boundaries.
-- **Clear boundaries:** keep the major parts of the system separated.
-- **Operational clarity:** system behavior should stay understandable to operators.
-- **Security by default:** auth, authorization, audit, and secrets handling should be part of the base design.
-- **Practical extensibility:** prefer explicit interfaces over tight framework coupling.
+- **On-prem first:** assume operator-controlled infrastructure and security boundaries.
+- **Modular monolith first:** validate the core request path before splitting the system further.
+- **Operational clarity:** keep local development and early on-prem deployment easy to understand.
+- **Explicit limits:** clearly distinguish what already exists from what is deferred.
+- **Practical extensibility:** add new layers through explicit interfaces, not premature platform abstractions.
 
-## Major Components
+## Current Minimal Request Flow
 
-### API/gateway
+1. The user opens the frontend and sees health/runtime status.
+2. The frontend sends `messages[]` to the backend.
+3. The backend validates runtime config and conversation limits.
+4. The backend trims old history if needed and prepends `SYSTEM_PROMPT` when configured.
+5. The backend calls one configured OpenAI-compatible endpoint.
+6. The reply is returned either as JSON or as a plain-text stream.
 
-Single entry point for APIs, request routing, basic request controls, and inbound audit handling.
+## Target High-Level Components
 
-### Auth/integration layer
+These are intended layers, not fully implemented modules.
 
-Integration with enterprise identity and internal services, including SSO, service-to-service auth, role mapping, and integration control.
+- **API/gateway:** request entry point, request limits, basic routing
+- **Auth/integration layer:** enterprise identity and internal integrations
+- **Model access layer:** stable access boundary for model backends
+- **Knowledge/RAG layer:** ingest, retrieval, and grounding
+- **Agents/tools layer:** orchestration and controlled tool execution
+- **Admin/UI layer:** operator-facing configuration and visibility
+- **Deployment layer:** readable deployment assets for on-prem installation
 
-### Model access layer
+## On-Prem Assumptions
 
-Shared access layer for model backends, covering local models, private endpoints, and approved external providers.
+- The initial deployment should work in a local network or a simple internal environment.
+- Kubernetes is not required for the current stage.
+- Secrets should come from env or an external secret store, not from the repository.
+- Later stages will need to consider restricted outbound access, network segmentation, and enterprise identity/logging systems.
 
-### Knowledge/RAG layer
+## Security Notes
 
-Layer for ingest, indexing, retrieval, and grounding, with attention to access boundaries and source traceability.
+- The current backend has no auth. This is a known limitation.
+- Secrets must not live in the repository.
+- Known backend errors are normalized and do not expose sensitive values such as API keys.
+- Full authorization, audit, and policy boundaries are still deferred.
 
-### Agents/tools layer
+## Observability Notes
 
-Orchestration layer for agent flows and tool execution, with explicit tool registration and clear action limits.
+- The current slice only has basic logging, `GET /health`, and `GET /api/v1/runtime`.
+- Metrics, tracing, and separate audit trails do not exist yet.
+- The next observability step should follow the real path frontend -> backend -> model API.
 
-### Admin/UI layer
+## Extensibility Notes
 
-Operator UI for system configuration, integration management, policy settings, and basic operational visibility.
+- The next reasonable boundary is around model access and auth/integration.
+- The project should avoid early generic abstractions for RAG, tools, or multi-model support.
+- Deployment assets should stay readable and easy to adapt.
 
-### Deployment layer
-
-Deployment assets, environment templates, and infrastructure assumptions for on-prem installation.
-
-## Data Flow Overview
-
-1. A user or internal client authenticates at the platform entry point.
-2. The gateway checks access and routes the request.
-3. The request can go directly to the model access layer or through knowledge/RAG and agents/tools.
-4. If retrieval is needed, the knowledge layer returns authorized context.
-5. If tool execution is needed, the agents/tools layer calls approved integrations under policy controls.
-6. The response, audit events, and telemetry are emitted for observability.
-
-## On-Prem Deployment Assumptions
-
-- The platform runs in customer-managed infrastructure, not vendor-managed SaaS.
-- Restricted outbound access and isolated environments should be considered.
-- Integration with internal identity, certificate, secrets, and logging systems is expected.
-- Data storage, retention, and backup stay under operator control.
-- The design should support both small initial setups and more segmented environments.
-
-## Security Considerations
-
-- Prefer enterprise identity integration over project-specific user stores.
-- Keep authorization explicit for API access, knowledge access, tool execution, and admin actions.
-- Do not keep secrets in the repository; use external secret storage or controlled environment injection.
-- Audit logging should cover sensitive operations and data access.
-- Data movement and storage boundaries should remain operator-controlled.
-
-## Observability Considerations
-
-- Structured logs should cover gateway, orchestration, retrieval, and admin actions.
-- Metrics should expose service health, latency, throughput, and dependency state.
-- End-to-end tracing should be possible across gateway, retrieval, model calls, and tools.
-- Audit trails should stay distinct from regular technical telemetry.
-
-## Extensibility Considerations
-
-- Add model providers through a stable abstraction layer.
-- Add knowledge connectors through explicit ingest and retrieval interfaces.
-- Register tools through clear permission boundaries.
-- Keep deployment assets readable and easy to adapt.
-
-The main early-stage risk is premature complexity. Core service boundaries should be validated before expanding integration coverage.
+The main risk at this stage is premature complexity. The current single-model chat slice should be stabilized before broader platform coverage is added.

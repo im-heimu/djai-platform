@@ -8,104 +8,84 @@ English companion: [README.en.md](README.en.md)
 
 **Pre-alpha.**
 
-Сейчас в репозитории есть базовый backend/frontend scaffold и документация. Полноценной платформы пока нет.
+Сейчас репозиторий содержит узкий, но рабочий vertical slice: FastAPI backend, React/Vite UI, интеграцию с одним OpenAI-compatible model endpoint и простой локальный/on-prem запуск через Docker Compose. Это ещё не полноценная платформа.
+
+## Что уже есть
+
+- FastAPI backend с `GET /health`, `GET /api/v1/runtime`, `POST /api/v1/chat` и `POST /api/v1/chat/stream`
+- один настроенный OpenAI-compatible chat completions endpoint
+- React/Vite UI с multi-turn историей в памяти страницы
+- streaming-ответы, остановка генерации и fallback на нестриминговый endpoint
+- runtime-параметры через env: `SYSTEM_PROMPT`, `MODEL_TEMPERATURE`, `MODEL_MAX_TOKENS`
+- server-side limits: `MAX_CONVERSATION_MESSAGES`, `MAX_MESSAGE_CHARS`
+- runtime diagnostics summary в backend и UI
+- нормализованные backend-ошибки для известных случаев
+
+## Что пока не реализовано
+
+- auth, SSO и интеграции с корпоративным identity
+- database и persistence истории
+- knowledge/RAG
+- agents/tools
+- multi-model orchestration
+- полноценная admin-панель
+- production-grade deployment, observability и audit
 
 ## Зачем нужен проект
 
-Многим командам нужен AI-стек, который можно развернуть внутри своей инфраструктуры, связать с внутренними системами и держать под своим контролем. DJAI Platform задуман как основа для такого on-prem решения без привязки к SaaS-модели.
+DJAI Platform задуман как практичная основа для on-prem AI-системы, которую можно держать внутри своей инфраструктуры, подключать к внутренним сервисам и развивать поэтапно без раннего усложнения архитектуры.
 
-## Область проекта
-
-DJAI Platform должен со временем стать модульной on-prem платформой для enterprise AI-нагрузок. В рабочую область проекта входят:
-
-- единая точка входа для API и сервисов
-- auth и интеграции с внутренними системами
-- доступ к model backend'ам
-- knowledge/RAG слой
-- agents и tools
-- административный UI
-- deployment для инфраструктуры заказчика
-
-## Что сейчас не входит в проект
-
-- заявления о production-ready состоянии до появления реальной реализации
-- жёсткая привязка к одному model vendor, vector database или UI framework
-- тяжёлая open source бюрократия для solo-maintainer pre-alpha проекта
-- SaaS как основной сценарий
-- продуктовый код вне базовой структуры и проектных документов
-
-## Планируемые компоненты
-
-- API/gateway
-- auth/integration layer
-- model access layer
-- knowledge/RAG layer
-- agents/tools layer
-- admin/UI layer
-- deployment layer
-
-## Структура репозитория
+## Текущая структура репозитория
 
 ```text
-backend/   стартовый FastAPI backend scaffold
-frontend/  стартовый React/Vite UI
-deploy/    локальный/on-prem friendly Docker Compose
-docs/      архитектура, roadmap и другая документация
+backend/   FastAPI backend и model integration
+frontend/  React/Vite chat UI
+deploy/    Docker Compose и шаблон окружения
+docs/      архитектура, roadmap, MVP и ADR
 ```
 
-## С чего начать
-
-Реализация пока не готова.
-
-Сейчас это ранний vertical scaffold с документацией. Если нужно понять направление проекта, начните с:
-
-- [docs/architecture.md](docs/architecture.md)
-- [docs/roadmap.md](docs/roadmap.md)
-- [SECURITY.md](SECURITY.md)
-
-Для первого локального запуска:
+## Быстрый запуск
 
 1. Создайте `deploy/.env` на основе `deploy/.env.example`.
-2. Запустите:
+2. Заполните минимум:
+   - `MODEL_API_BASE_URL`
+   - `MODEL_API_KEY`
+   - `MODEL_NAME`
+3. Запустите:
 
 ```bash
 docker compose -f deploy/docker-compose.yml up --build
 ```
 
-После запуска:
+После старта:
 
-- backend: `http://localhost:8000/health`
+- backend health: `http://localhost:8000/health`
+- runtime diagnostics: `http://localhost:8000/api/v1/runtime`
 - frontend: `http://localhost:5173`
 
-Для реального chat flow заполните в `deploy/.env`:
-
-- `MODEL_API_BASE_URL`
-- `MODEL_API_KEY`
-- `MODEL_NAME`
-- `MODEL_TIMEOUT_SECONDS`
-
-Опционально можно задать глобальное поведение model через:
+Опционально доступны:
 
 - `SYSTEM_PROMPT`
 - `MODEL_TEMPERATURE`
 - `MODEL_MAX_TOKENS`
-
-Для предсказуемого chat flow также доступны backend-лимиты:
-
 - `MAX_CONVERSATION_MESSAGES`
 - `MAX_MESSAGE_CHARS`
 
-Backend ожидает OpenAI-compatible chat completions API и возвращает первую текстовую часть ответа model через существующий `/api/v1/chat`.
+Локальная разработка описана в [backend/README.md](backend/README.md) и [frontend/README.md](frontend/README.md).
 
-Frontend по умолчанию использует `POST /api/v1/chat/stream` и показывает ответ постепенно по мере генерации. Обычный `POST /api/v1/chat` сохранён как нестриминговый режим.
+## Документы
 
-Текущий chat UI хранит историю диалога только в памяти страницы и отправляет весь `messages[]` в backend для multi-turn режима.
+- [docs/architecture.md](docs/architecture.md) — текущий минимальный срез и целевое направление архитектуры
+- [docs/mvp.md](docs/mvp.md) — узкий MVP chat slice и его текущий статус
+- [docs/roadmap.md](docs/roadmap.md) — текущая фаза проекта и практичные следующие шаги
+- [docs/adr/0001-initial-stack.md](docs/adr/0001-initial-stack.md) — зафиксированный стартовый стек
+- [SECURITY.md](SECURITY.md) — базовая политика security disclosure
 
-Backend может ограничивать длину последнего user-сообщения и обрезать старую историю с начала перед отправкой в upstream model API.
+## Ближайшие шаги
 
-## Roadmap
-
-Текущий roadmap находится в [docs/roadmap.md](docs/roadmap.md).
+- стабилизировать текущий single-model chat slice и development flow
+- выделить следующий минимальный platform boundary вокруг auth/integration и model access
+- только после этого расширять проект в сторону knowledge/RAG и более широких admin-возможностей
 
 ## Лицензия
 

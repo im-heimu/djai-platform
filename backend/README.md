@@ -1,6 +1,6 @@
 # Backend
 
-Минимальный backend-каркас DJAI Platform на FastAPI.
+Минимальный FastAPI backend для текущего pre-alpha среза DJAI Platform.
 
 Что есть сейчас:
 
@@ -8,10 +8,12 @@
 - `GET /api/v1/runtime`
 - `POST /api/v1/chat`
 - `POST /api/v1/chat/stream`
-- прямой вызов OpenAI-compatible chat completions API
+- прямой вызов одного OpenAI-compatible chat completions API
 - потоковый plain-text ответ для frontend
 - поддержка multi-turn диалога через `messages[]`
-- базовые настройки через переменные окружения
+- runtime-настройки через переменные окружения
+- server-side limits и trimming истории
+- нормализованные JSON-ошибки для известных случаев
 - CORS для локального frontend
 
 ## Локальный запуск
@@ -48,9 +50,9 @@ uv lock
 
 `MODEL_API_BASE_URL` обычно должен указывать на OpenAI-compatible API base URL вида `.../v1`. Backend сам добавляет `/chat/completions`, если его нет в конфигурации.
 
-Без корректных `MODEL_API_BASE_URL`, `MODEL_API_KEY` и `MODEL_NAME` endpoint `/api/v1/chat` вернёт читаемую ошибку конфигурации.
+Без корректных `MODEL_API_BASE_URL`, `MODEL_API_KEY` и `MODEL_NAME` chat endpoint вернут читаемую ошибку конфигурации.
 
-`GET /api/v1/runtime` отдаёт безопасный snapshot текущей runtime-конфигурации: готов ли backend к chat-запросам, включён ли `SYSTEM_PROMPT`, какие timeout/temperature/max tokens и server-side limits заданы. Секреты и полный текст system prompt не возвращаются.
+`GET /api/v1/runtime` отдаёт безопасный snapshot текущей runtime-конфигурации: готов ли backend к chat-запросам, включён ли `SYSTEM_PROMPT`, какие model-параметры и server-side limits заданы. Секреты и полный текст system prompt не возвращаются.
 
 Если `SYSTEM_PROMPT` не пустой, backend добавляет его как глобальное `system`-сообщение перед всей историей диалога.
 
@@ -65,3 +67,5 @@ uv lock
 Оба chat endpoint принимают либо новый формат `messages: [{ role, content }, ...]`, либо старый `message` для простой обратной совместимости. Runtime-настройки применяются одинаково к `/api/v1/chat` и `/api/v1/chat/stream`.
 
 Для известных ошибок backend использует короткий JSON-формат вида `{ error_code, message, detail? }`. Это касается, например, ошибок runtime-конфигурации, timeout, upstream model API и oversized user message.
+
+Текущий backend не включает auth, database, persistence, RAG, agents, queues или multi-model orchestration.

@@ -1,49 +1,59 @@
 # Roadmap
 
-Это рабочий roadmap DJAI Platform для стадии pre-alpha. Он нужен как ориентир по шагам, а не как обещание сроков.
+Это рабочий roadmap DJAI Platform для стадии pre-alpha. Он нужен как ориентир по текущей фазе и следующим практическим шагам, а не как обещание сроков.
 
 English companion: [roadmap.en.md](roadmap.en.md)
 
+## Текущий срез
+
+Сейчас репозиторий находится между завершённым bootstrap и ранним узким MVP-сценарием:
+
+- публичная структура репозитория уже собрана
+- есть рабочий single-model chat slice на FastAPI + React/Vite
+- есть streaming, multi-turn история в памяти, runtime diagnostics, limits и нормализованные ошибки
+- auth, persistence, knowledge/RAG, agents и полноценный admin layer ещё не начаты
+
 ## Phase 0: bootstrap репозитория
 
-**Цель:** подготовить чистую публичную основу до появления продуктового кода.
+**Статус:** выполнено
 
-Что должно быть сделано:
+Что уже сделано:
 
 - базовая документация репозитория
 - минимальная структура каталогов для backend, frontend, deployment и docs
-- базовая гигиена репозитория: лицензия и ignore-правила
+- лицензия, `.gitignore` и базовая maintainer-гигиена
 
-## Phase 1: skeleton платформы
+## Phase 1: стартовый platform skeleton
 
-**Цель:** собрать минимальный технический каркас без видимости готового продукта.
+**Статус:** выполнено для текущего узкого сценария
 
-Что должно быть сделано:
+Что уже сделано:
 
-- стартовая структура backend и frontend
-- первичные границы сервисов: gateway, auth/integration, model access, knowledge
-- черновые правила локальной разработки и примеры конфигурации
-- первый черновик deployment-структуры
+- FastAPI backend и React/Vite frontend
+- базовый локальный/on-prem запуск через Docker Compose
+- один path до OpenAI-compatible model API
+- runtime-конфигурация, diagnostics, limits и error normalization
 
-## Phase 2: core MVP
+## Phase 2: узкий core MVP
 
-**Цель:** подтвердить форму платформы через узкий, но цельный сценарий.
+**Статус:** текущий следующий шаг
 
-Что должно быть сделано:
+**Цель:** довести текущий chat slice до более устойчивой базы для следующего платформенного слоя.
 
-- API entry point с auth
-- базовый слой доступа к model backend'ам
-- минимальный knowledge/RAG сценарий
-- первые части admin/UI для настройки и базовой видимости
-- reference deployment для непроизводственного использования
+Практичные deliverables:
 
-## Phase 3: hardening и extension
+- стабилизировать текущий single-model chat flow и development/run path
+- выделить более явную internal boundary вокруг model access
+- подготовить минимальный auth/integration слой вместо полностью открытого backend
+- определить, какой самый маленький admin/config surface нужен сверх текущего runtime summary
 
-**Цель:** повысить эксплуатационную готовность и упростить расширение платформы.
+## Phase 3: hardening и расширение
 
-Что должно быть сделано:
+**Статус:** позже, после стабилизации Phase 2
 
-- усиление authorization, audit logging и работы с secret'ами
-- базовая observability по основным путям запросов
-- точки расширения для connectors, tools и новых model backend'ов
-- более понятные deployment-сценарии для ограниченных и масштабируемых on-prem сред
+Что имеет смысл делать только после этого:
+
+- knowledge/RAG как отдельный следующий слой
+- усиление authorization, audit и работы с secret'ами
+- базовая observability по реальному пути frontend -> backend -> model API
+- более внятные deployment-сценарии для ограниченных on-prem сред

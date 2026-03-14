@@ -1,49 +1,59 @@
 # Roadmap
 
-This is the working roadmap for DJAI Platform in its pre-alpha stage. It is meant as a planning guide, not a delivery promise.
+This is the working roadmap for DJAI Platform in its pre-alpha stage. It is meant as a guide to the current phase and the next practical steps, not as a delivery promise.
 
 The main maintainer-facing version of this document is Russian: [roadmap.md](roadmap.md).
 
+## Current Snapshot
+
+The repository is currently between completed bootstrap work and an early narrow MVP:
+
+- the public repository base is already in place
+- there is a working single-model chat slice on FastAPI + React/Vite
+- streaming, in-memory multi-turn history, runtime diagnostics, limits, and normalized errors already exist
+- auth, persistence, knowledge/RAG, agents, and a real admin layer are still absent
+
 ## Phase 0: repository bootstrap
 
-**Goal:** establish a clean public base before product code exists.
+**Status:** completed
 
-Deliverables:
+Completed deliverables:
 
 - core repository documentation
 - minimal directory structure for backend, frontend, deployment, and docs
 - baseline repository hygiene such as license and ignore rules
 
-## Phase 1: platform skeleton
+## Phase 1: initial platform skeleton
 
-**Goal:** create the minimal technical skeleton without implying a finished product.
+**Status:** completed for the current narrow slice
 
-Deliverables:
+Completed deliverables:
 
-- initial backend and frontend layout
-- early service boundaries for gateway, auth/integration, model access, and knowledge
-- draft local development conventions and config examples
-- first draft of the deployment structure
+- FastAPI backend and React/Vite frontend
+- basic local/on-prem startup through Docker Compose
+- one path to an OpenAI-compatible model API
+- runtime configuration, diagnostics, limits, and error normalization
 
-## Phase 2: core MVP
+## Phase 2: narrow core MVP
 
-**Goal:** validate the platform shape through a narrow but complete path.
+**Status:** current next step
 
-Deliverables:
+**Goal:** turn the current chat slice into a more stable base for the next platform layer.
 
-- an authenticated API entry point
-- a basic model backend access layer
-- a minimal knowledge/RAG flow
-- first admin/UI surfaces for configuration and basic visibility
-- a reference deployment for non-production use
+Practical deliverables:
+
+- stabilize the current single-model chat flow and run/development path
+- carve out a clearer internal boundary around model access
+- introduce a minimal auth/integration layer instead of a fully open backend
+- decide what the smallest admin/config surface should be beyond the current runtime summary
 
 ## Phase 3: hardening and extension
 
-**Goal:** improve operational readiness and make the platform easier to extend.
+**Status:** later, after Phase 2 is stable
 
-Deliverables:
+Future deliverables:
 
-- stronger authorization, audit logging, and secrets handling
-- baseline observability for core request paths
-- extension points for connectors, tools, and additional model backends
-- clearer deployment guidance for restricted and scaled on-prem environments
+- knowledge/RAG as the next distinct layer
+- stronger authorization, audit, and secrets handling
+- baseline observability for the real frontend -> backend -> model API path
+- clearer deployment guidance for restricted on-prem environments

@@ -1,14 +1,16 @@
 # Frontend
 
-Минимальный frontend-каркас DJAI Platform на React и Vite.
+Минимальный React/Vite frontend для текущего pre-alpha среза DJAI Platform.
 
 Что есть сейчас:
 
-- простая страница с заголовком DJAI Platform
-- поле для сообщения
-- отправка в backend `POST /api/v1/chat`
-- показ stub-ответа
+- chat UI с multi-turn историей в памяти страницы
+- основной путь через `POST /api/v1/chat/stream`
+- fallback на `POST /api/v1/chat`
+- остановка активной генерации
+- runtime diagnostics summary через `GET /api/v1/runtime`
 - простая проверка `GET /health`
+- чистый layout без auth, routing и UI framework
 
 ## Локальный запуск
 
@@ -23,4 +25,4 @@ npm run dev
 
 - `VITE_API_BASE_URL` — базовый URL backend API
 
-Сейчас frontend рассчитан на первый вертикальный сценарий и не содержит auth, роутинг и UI-фреймворки.
+Текущий frontend рассчитан на один узкий сценарий: отправка сообщений в backend, постепенный показ ответа model и отображение базового runtime-состояния. Persistence, markdown rendering, settings UI и auth пока не реализованы.
