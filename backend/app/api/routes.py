@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatRequest, ChatResponse, RuntimeResponse
 from app.services.chat import (
-    ModelServiceError,
     create_chat_completion_stream,
     get_runtime_diagnostics,
     request_chat_completion,
@@ -24,13 +23,10 @@ async def chat(
     payload: ChatRequest,
     settings: Settings = Depends(get_settings),
 ) -> ChatResponse:
-    try:
-        return await request_chat_completion(
-            messages=payload.resolved_messages(),
-            settings=settings,
-        )
-    except ModelServiceError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+    return await request_chat_completion(
+        messages=payload.resolved_messages(),
+        settings=settings,
+    )
 
 
 @chat_router.get("/runtime", response_model=RuntimeResponse)
@@ -45,12 +41,9 @@ async def chat_stream(
     payload: ChatRequest,
     settings: Settings = Depends(get_settings),
 ) -> StreamingResponse:
-    try:
-        stream = await create_chat_completion_stream(
-            messages=payload.resolved_messages(),
-            settings=settings,
-        )
-    except ModelServiceError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+    stream = await create_chat_completion_stream(
+        messages=payload.resolved_messages(),
+        settings=settings,
+    )
 
     return StreamingResponse(stream, media_type="text/plain")

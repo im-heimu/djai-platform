@@ -35,6 +35,12 @@ class ChatResponse(BaseModel):
     model_endpoint_configured: bool
 
 
+class ApiErrorResponse(BaseModel):
+    error_code: str
+    message: str
+    detail: str | None = None
+
+
 class RuntimeResponse(BaseModel):
     runtime_ready: bool
     model_configured: bool
@@ -47,4 +53,5 @@ class RuntimeResponse(BaseModel):
     model_max_tokens: int | None = None
     max_conversation_messages: int | None = None
     max_message_chars: int | None = None
+    configuration_error_code: str | None = None
     configuration_error: str | None = None

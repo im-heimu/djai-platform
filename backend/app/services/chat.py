@@ -16,10 +16,18 @@ PLACEHOLDER_MODEL_NAME = "replace-with-model-name"
 
 
 class ModelServiceError(Exception):
-    def __init__(self, message: str, status_code: int) -> None:
+    def __init__(
+        self,
+        error_code: str,
+        message: str,
+        status_code: int,
+        detail: str | None = None,
+    ) -> None:
         super().__init__(message)
+        self.error_code = error_code
         self.message = message
         self.status_code = status_code
+        self.detail = detail
 
 
 def _build_chat_completions_url(base_url: str) -> str:
@@ -189,6 +197,7 @@ def _apply_conversation_limits(
         and len(latest_user_message.content) > settings.max_message_chars
     ):
         raise ModelServiceError(
+            "message_too_large",
             f"Сообщение слишком длинное. Максимум: {settings.max_message_chars} символов.",
             status_code=400,
         )
@@ -208,24 +217,28 @@ def _validate_settings(settings: Settings) -> None:
         or settings.model_api_base_url == PLACEHOLDER_MODEL_BASE_URL
     ):
         raise ModelServiceError(
+            "runtime_config_invalid",
             "Не настроен MODEL_API_BASE_URL.",
             status_code=500,
         )
 
     if not settings.model_api_key or settings.model_api_key == PLACEHOLDER_MODEL_API_KEY:
         raise ModelServiceError(
+            "runtime_config_invalid",
             "Не настроен MODEL_API_KEY.",
             status_code=500,
         )
 
     if not settings.model_name or settings.model_name == PLACEHOLDER_MODEL_NAME:
         raise ModelServiceError(
+            "runtime_config_invalid",
             "Не настроен MODEL_NAME.",
             status_code=500,
         )
 
     if settings.model_timeout_seconds is None:
         raise ModelServiceError(
+            "runtime_config_invalid",
             "MODEL_TIMEOUT_SECONDS должен быть положительным числом.",
             status_code=500,
         )
@@ -236,12 +249,14 @@ def _validate_settings(settings: Settings) -> None:
         or settings.model_temperature > 2
     ):
         raise ModelServiceError(
+            "runtime_config_invalid",
             "MODEL_TEMPERATURE должен быть числом от 0 до 2.",
             status_code=500,
         )
 
     if settings.model_max_tokens is not None and settings.model_max_tokens <= 0:
         raise ModelServiceError(
+            "runtime_config_invalid",
             "MODEL_MAX_TOKENS должен быть положительным целым числом.",
             status_code=500,
         )
@@ -251,12 +266,14 @@ def _validate_settings(settings: Settings) -> None:
         and settings.max_conversation_messages <= 0
     ):
         raise ModelServiceError(
+            "runtime_config_invalid",
             "MAX_CONVERSATION_MESSAGES должен быть положительным целым числом.",
             status_code=500,
         )
 
     if settings.max_message_chars is not None and settings.max_message_chars <= 0:
         raise ModelServiceError(
+            "runtime_config_invalid",
             "MAX_MESSAGE_CHARS должен быть положительным целым числом.",
             status_code=500,
         )
@@ -276,10 +293,12 @@ async def _extract_upstream_error_from_response(response: httpx.Response) -> str
 
 def get_runtime_diagnostics(settings: Settings) -> RuntimeResponse:
     configuration_error = None
+    configuration_error_code = None
 
     try:
         _validate_settings(settings)
     except ModelServiceError as exc:
+        configuration_error_code = exc.error_code
         configuration_error = exc.message
 
     temperature = settings.model_temperature
@@ -300,6 +319,7 @@ def get_runtime_diagnostics(settings: Settings) -> RuntimeResponse:
             settings.max_conversation_messages
         ),
         max_message_chars=_normalize_positive_int(settings.max_message_chars),
+        configuration_error_code=configuration_error_code,
         configuration_error=configuration_error,
     )
 
@@ -327,12 +347,14 @@ async def request_chat_completion(
     except httpx.TimeoutException as exc:
         logger.warning("Model API request timed out")
         raise ModelServiceError(
+            "model_timeout",
             "Model API не ответил за отведённое время.",
             status_code=504,
         ) from exc
     except httpx.HTTPError as exc:
         logger.warning("Model API request failed: %s", exc.__class__.__name__)
         raise ModelServiceError(
+            "model_transport_error",
             "Не удалось выполнить запрос к model API.",
             status_code=502,
         ) from exc
@@ -350,13 +372,19 @@ async def request_chat_completion(
             if upstream_message
             else f"Model API вернул ошибку {response.status_code}."
         )
-        raise ModelServiceError(message_text, status_code=502)
+        raise ModelServiceError(
+            "model_upstream_error",
+            "Model API вернул ошибку.",
+            status_code=502,
+            detail=message_text,
+        )
 
     try:
         data = response.json()
     except ValueError as exc:
         logger.warning("Model API returned non-JSON response")
         raise ModelServiceError(
+            "model_response_invalid",
             "Model API вернул некорректный ответ.",
             status_code=502,
         ) from exc
@@ -365,6 +393,7 @@ async def request_chat_completion(
     if not reply:
         logger.warning("Model API response did not contain assistant content")
         raise ModelServiceError(
+            "model_response_invalid",
             "Model API не вернул текст ответа.",
             status_code=502,
         )
@@ -402,6 +431,7 @@ async def create_chat_completion_stream(
         await client.aclose()
         logger.warning("Model API stream request timed out")
         raise ModelServiceError(
+            "model_timeout",
             "Model API не ответил за отведённое время.",
             status_code=504,
         ) from exc
@@ -409,6 +439,7 @@ async def create_chat_completion_stream(
         await client.aclose()
         logger.warning("Model API stream request failed: %s", exc.__class__.__name__)
         raise ModelServiceError(
+            "model_transport_error",
             "Не удалось выполнить потоковый запрос к model API.",
             status_code=502,
         ) from exc
@@ -424,7 +455,12 @@ async def create_chat_completion_stream(
             if upstream_message
             else f"Model API вернул ошибку {response.status_code}."
         )
-        raise ModelServiceError(message_text, status_code=502)
+        raise ModelServiceError(
+            "model_upstream_error",
+            "Model API вернул ошибку.",
+            status_code=502,
+            detail=message_text,
+        )
 
     async def text_stream() -> AsyncIterator[str]:
         try:

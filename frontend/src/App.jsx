@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const ERROR_MESSAGES = {
+  runtime_config_invalid: "Backend настроен не полностью. Проверьте runtime-конфигурацию.",
+  model_timeout: "Model не ответила вовремя. Попробуйте ещё раз.",
+  model_transport_error: "Не удалось связаться с model API.",
+  model_upstream_error: "Model сейчас недоступна. Попробуйте ещё раз позже.",
+  model_response_invalid: "Model вернула некорректный ответ.",
+  message_too_large: "Сообщение слишком длинное для текущих ограничений backend.",
+  invalid_request: "Некорректный формат запроса.",
+  internal_error: "Произошла внутренняя ошибка backend.",
+};
 
 function isAbortError(error) {
   return error?.name === "AbortError";
@@ -11,11 +21,45 @@ async function parseErrorResponse(response) {
 
   if (contentType.includes("application/json")) {
     const data = await response.json();
-    return data.detail || "Chat request failed";
+    if (data.error_code || data.message) {
+      return {
+        errorCode: data.error_code || null,
+        message: data.message || "Request failed",
+        detail: data.detail || null,
+      };
+    }
+
+    return {
+      errorCode: null,
+      message: data.detail || "Request failed",
+      detail: null,
+    };
   }
 
   const text = await response.text();
-  return text || "Chat request failed";
+  return {
+    errorCode: null,
+    message: text || "Request failed",
+    detail: null,
+  };
+}
+
+function getUserFacingError(apiError, fallbackMessage) {
+  if (apiError?.errorCode && ERROR_MESSAGES[apiError.errorCode]) {
+    return ERROR_MESSAGES[apiError.errorCode];
+  }
+
+  if (apiError?.message) {
+    return apiError.message;
+  }
+
+  return fallbackMessage;
+}
+
+function createUserFacingError(apiError, fallbackMessage) {
+  const error = new Error(getUserFacingError(apiError, fallbackMessage));
+  error.code = apiError?.errorCode || null;
+  return error;
 }
 
 async function requestChatFallback(messages, signal) {
@@ -29,7 +73,10 @@ async function requestChatFallback(messages, signal) {
   });
 
   if (!response.ok) {
-    throw new Error(await parseErrorResponse(response));
+    throw createUserFacingError(
+      await parseErrorResponse(response),
+      "Не удалось получить ответ от backend.",
+    );
   }
 
   const data = await response.json();
@@ -134,6 +181,16 @@ function App() {
         },
       ]
     : [];
+  const runtimeConfigurationMessage =
+    runtime?.configuration_error_code || runtime?.configuration_error
+      ? getUserFacingError(
+          {
+            errorCode: runtime?.configuration_error_code || null,
+            message: runtime?.configuration_error || "",
+          },
+          "Backend не готов к chat-запросам.",
+        )
+      : "";
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -158,14 +215,19 @@ function App() {
       try {
         const response = await fetch(`${API_BASE_URL}/api/v1/runtime`);
         if (!response.ok) {
-          throw new Error("Runtime diagnostics request failed");
+          throw createUserFacingError(
+            await parseErrorResponse(response),
+            "Не удалось загрузить runtime diagnostics.",
+          );
         }
 
         const data = await response.json();
         setRuntime(data);
         setRuntimeError("");
       } catch (runtimeFetchError) {
-        setRuntimeError("Не удалось загрузить runtime diagnostics.");
+        setRuntimeError(
+          runtimeFetchError.message || "Не удалось загрузить runtime diagnostics.",
+        );
       }
     };
 
@@ -229,7 +291,10 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error(await parseErrorResponse(response));
+        throw createUserFacingError(
+          await parseErrorResponse(response),
+          "Не удалось получить ответ от backend.",
+        );
       }
 
       if (!response.body) {
@@ -255,7 +320,7 @@ function App() {
       setMessages([...requestMessages, { role: "assistant", content: accumulatedReply }]);
 
       if (!accumulatedReply) {
-        throw new Error("Model не вернул текст ответа.");
+        throw new Error("Ответ модели пустой или оборвался слишком рано.");
       }
     } catch (requestError) {
       if (isAbortError(requestError)) {
@@ -467,7 +532,7 @@ function App() {
 
                   {runtime.configuration_error ? (
                     <p className="feedback feedback-error runtime-warning">
-                      {runtime.configuration_error}
+                      {runtimeConfigurationMessage}
                     </p>
                   ) : null}
                 </>

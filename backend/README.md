@@ -63,3 +63,5 @@ uv lock
 `POST /api/v1/chat/stream` сохраняет обычный HTTP-подход и отдаёт текст по мере генерации ответа. WebSocket и отдельная event-схема пока не используются.
 
 Оба chat endpoint принимают либо новый формат `messages: [{ role, content }, ...]`, либо старый `message` для простой обратной совместимости. Runtime-настройки применяются одинаково к `/api/v1/chat` и `/api/v1/chat/stream`.
+
+Для известных ошибок backend использует короткий JSON-формат вида `{ error_code, message, detail? }`. Это касается, например, ошибок runtime-конфигурации, timeout, upstream model API и oversized user message.
